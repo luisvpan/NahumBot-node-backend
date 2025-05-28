@@ -1,9 +1,10 @@
-import { Request, Response } from "express";
+import { Request, response, Response } from "express";
 import { Socket } from "socket.io";
 import {
   changeMode,
   changeSpeed,
   changeTarget,
+  changeWaterBombMode,
   getCurrentStatus,
   getSensorData,
   MoveCommand,
@@ -16,6 +17,7 @@ import {
   Coords,
   CurrentStatus,
   MovementMode,
+  WaterBombMode,
 } from "./types";
 import { isValidJson } from "./helpers";
 
@@ -29,6 +31,9 @@ console.log("Server is running");
 
 let lastBotVideoFrame: string = "";
 let lastSensorData: number[] = [];
+let lastBombData: boolean = false;
+let bombMode: WaterBombMode;
+
 let lastBotLocationData: LocationData = {
   coors: {
     latitude: 0,
@@ -41,6 +46,7 @@ let lastBotCurrentStatus: CurrentStatus = {
   movementMode: MovementMode.CONTROL,
   running: false,
   movementSpeed: 0, // Esta (si se llegara a implementar) es la velocidad "teorica" establecida para el bot
+  bombIsOn: false,
   // Map Mode
   targetCoords: { latitude: 0, longitude: 0 },
   targetOrientation: 0,
@@ -121,6 +127,14 @@ io.on("connection", async (socket) => {
     console.log(`Modo recibido: ${mode}`);
     lastBotCurrentStatus = await changeMode(mode);
     socket.emit("receive-current-status", lastBotCurrentStatus);
+  });
+
+  // Cambiar el modo de la bomba
+  socket.on("change-water-bomb-mode", async (mode: WaterBombMode) => {
+    console.log(`Modo de bomba recibido: ${mode}`);
+    const response = await changeWaterBombMode(mode);
+    bombMode = response.mode;
+    socket.emit("receive-water-bomb-status", lastBotCurrentStatus);
   });
 
   // Cambiar el target

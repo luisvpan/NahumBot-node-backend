@@ -1,7 +1,11 @@
 import axios, { AxiosResponse } from "axios";
 import { BASE_URL } from "./constants";
-import { CurrentStatus, MovementMode, RawCurrentStatus } from "./types";
-import { raw } from "express";
+import {
+  CurrentStatus,
+  MovementMode,
+  RawCurrentStatus,
+  WaterBombMode,
+} from "./types";
 
 export type MoveCommand =
   | "forward"
@@ -68,6 +72,23 @@ export async function changeMode(
   return formatCurrentStatus(response.data.current_status);
 }
 
+export async function changeWaterBombMode(
+  water_bomb_mode: WaterBombMode
+): Promise<{ mode: WaterBombMode }> {
+  const response = await backendClient.put<ChangeWaterBombModeResponse>(
+    "/change-water-bomb-mode",
+    {
+      mode: water_bomb_mode,
+    }
+  );
+
+  if (response.data.status !== "success") {
+    throw new Error("Error changing mode");
+  }
+
+  return { mode: water_bomb_mode };
+}
+
 export async function changeTarget(targetCoords: {
   latitude: number;
   longitude: number;
@@ -123,6 +144,7 @@ function formatCurrentStatus(
   return {
     movementMode: rawCurrentStatus.movement_mode,
     running: rawCurrentStatus.running,
+    bombIsOn: rawCurrentStatus.bombIsOn,
     movementSpeed: rawCurrentStatus.movement_speed,
     targetCoords: {
       latitude: rawCurrentStatus.target_coords.latitude,
@@ -164,4 +186,9 @@ export interface ChangeModeResponse {
   status: string;
   mode: MovementMode;
   current_status: RawCurrentStatus;
+}
+
+export interface ChangeWaterBombModeResponse {
+  status: string;
+  mode: WaterBombMode;
 }
